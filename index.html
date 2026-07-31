@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Green House Security Monitoring System</title>
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.4/chart.umd.min.js"></script>
+</head>
+<body>
+
+<div class="app">
+
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="brand">
+      <div class="brand-mark">🌿🔐</div>
+      <div class="brand-text">
+        <strong>GHSM</strong>
+        <span>Green House Security</span>
+      </div>
+    </div>
+
+    <nav class="nav">
+      <button class="nav-item active" data-page="dashboard"><span class="ico">🏠</span>Dashboard</button>
+      <button class="nav-item" data-page="security"><span class="ico">🔐</span>Security</button>
+      <button class="nav-item" data-page="rfid-users"><span class="ico">🪪</span>RFID Users</button>
+      <button class="nav-item" data-page="records"><span class="ico">📋</span>Access Records</button>
+      <button class="nav-item" data-page="environment"><span class="ico">📊</span>Environment</button>
+      <button class="nav-item" data-page="controls"><span class="ico">🎛️</span>Device Controls</button>
+      <button class="nav-item" data-page="alerts"><span class="ico">🚨</span>Alerts<span class="nav-badge" id="alertBadge">0</span></button>
+      <button class="nav-item" data-page="settings"><span class="ico">⚙️</span>Settings</button>
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="esp-pill">
+        <span class="dot dot-green" id="esp32Dot"></span>
+        <div>
+          <div class="pill-title">ESP32 Status</div>
+          <div class="pill-sub" id="esp32Text">Online</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="scrim" id="scrim"></div>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+
+    <!-- HEADER -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburger">☰</button>
+        <span class="topbar-title">🌿 Green House Security Monitoring System</span>
+      </div>
+
+      <div class="topbar-right">
+        <div class="status-chip" title="System status">
+          <span class="dot dot-green"></span> System <b>ONLINE</b>
+        </div>
+        <div class="status-chip" id="securityChip" title="Security arm state">
+          <span class="dot dot-green"></span> Security <b id="securityChipText">ARMED</b>
+        </div>
+        <div class="status-chip" id="doorChip" title="Door state">
+          🔒 Door <b id="doorChipText">LOCKED</b>
+        </div>
+
+        <label class="demo-toggle" title="Toggle simulated ESP32 data">
+          <input type="checkbox" id="demoModeToggle" checked>
+          <span>🟡 DEMO MODE</span>
+        </label>
+
+        <button class="icon-btn" id="notifBtn">🔔<span class="nav-badge" id="notifBadge">0</span></button>
+        <div class="clock">
+          <div id="clockTime">--:--:--</div>
+          <div id="clockDate">--/--/----</div>
+        </div>
+        <div class="avatar">👤</div>
+      </div>
+    </header>
+
+    <!-- CONTENT -->
+    <main class="content" id="content">
+
+      <!-- ============ DASHBOARD ============ -->
+      <section class="page active" id="page-dashboard">
+        <div class="page-head">
+          <h1 id="greeting">Good Morning 👋</h1>
+          <p class="sub">Real-time greenhouse environment and security monitoring</p>
+        </div>
+
+        <div class="grid grid-4" id="statusCards"></div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-head"><h3>Environment History</h3></div>
+            <canvas id="dashEnvChart" height="180"></canvas>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Recent Security Activity</h3></div>
+            <div class="timeline" id="dashTimeline"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SECURITY ============ -->
+      <section class="page" id="page-security">
+        <div class="page-head">
+          <h1>Greenhouse Security</h1>
+          <p class="sub">Door control and live RFID scanner</p>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card door-card">
+            <div class="door-visual" id="doorVisual">🔒</div>
+            <div class="door-state" id="doorStateText">DOOR LOCKED</div>
+            <div class="badge badge-green" id="doorSecureBadge">SECURE</div>
+
+            <div class="kv-list">
+              <div><span>Last access user</span><b id="kvLastUser">—</b></div>
+              <div><span>Last unlock time</span><b id="kvLastUnlock">—</b></div>
+              <div><span>Last lock time</span><b id="kvLastLock">—</b></div>
+              <div><span>Today's attempts</span><b id="kvAttempts">0</b></div>
+              <div><span>Successful</span><b id="kvSuccess">0</b></div>
+              <div><span>Failed</span><b id="kvFailed">0</b></div>
+            </div>
+
+            <div class="btn-row">
+              <button class="btn btn-green" id="unlockBtn">🔓 UNLOCK DOOR</button>
+              <button class="btn btn-outline" id="lockBtn">🔒 LOCK DOOR</button>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-head"><h3>🪪 RFID Reader</h3></div>
+            <div class="scanner">
+              <div class="scanner-ring" id="scannerRing">🪪</div>
+              <div class="scanner-state" id="scannerState">READY TO SCAN</div>
+              <div class="scanner-result" id="scannerResult"></div>
+            </div>
+            <button class="btn btn-outline" id="simScanBtn">Simulate card scan</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ RFID USERS ============ -->
+      <section class="page" id="page-rfid-users">
+        <div class="page-head">
+          <h1>RFID Users</h1>
+          <p class="sub">Manage authorized greenhouse access cards</p>
+          <button class="btn btn-green" id="addUserBtn">+ Add New RFID Card</button>
+        </div>
+
+        <div class="card">
+          <table class="table" id="usersTable">
+            <thead><tr>
+              <th>User</th><th>RFID UID</th><th>Status</th><th>Registered</th><th>Last Access</th><th>Total</th><th>Actions</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ============ ACCESS RECORDS ============ -->
+      <section class="page" id="page-records">
+        <div class="page-head">
+          <h1>📋 RFID Access Records</h1>
+          <p class="sub">Permanent history of all door and RFID activity</p>
+        </div>
+
+        <div class="card">
+          <div class="toolbar">
+            <input type="text" id="recordSearch" placeholder="Search by user, UID or event...">
+            <select id="recordFilter">
+              <option value="all">All</option>
+              <option value="GRANTED">Granted</option>
+              <option value="DENIED">Denied</option>
+              <option value="LOCK">Locked</option>
+              <option value="UNLOCK">Unlocked</option>
+            </select>
+            <select id="recordDate">
+              <option value="all">All dates</option>
+              <option value="today">Today</option>
+              <option value="7">Last 7 days</option>
+              <option value="30">Last 30 days</option>
+            </select>
+            <select id="recordSort">
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+            <button class="btn btn-outline" id="exportCsvBtn">Export CSV</button>
+            <button class="btn btn-outline" id="refreshRecordsBtn">Refresh</button>
+          </div>
+
+          <table class="table" id="recordsTable">
+            <thead><tr>
+              <th>Date</th><th>Time</th><th>User</th><th>RFID UID</th><th>Action</th><th>Door</th><th>Result</th><th>Source</th>
+            </tr></thead>
+            <tbody></tbody>
+          </table>
+          <div class="pagination" id="recordsPagination"></div>
+        </div>
+      </section>
+
+      <!-- ============ ENVIRONMENT ============ -->
+      <section class="page" id="page-environment">
+        <div class="page-head">
+          <h1>📊 Environment Monitoring</h1>
+          <p class="sub">Temperature, humidity, soil moisture and light</p>
+        </div>
+
+        <div class="toolbar">
+          <select id="envRange">
+            <option value="1">1 Hour</option>
+            <option value="6">6 Hours</option>
+            <option value="24" selected>24 Hours</option>
+            <option value="168">7 Days</option>
+            <option value="720">30 Days</option>
+          </select>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card"><div class="card-head"><h3>🌡️ Temperature (°C)</h3></div><canvas id="chartTemp" height="160"></canvas></div>
+          <div class="card"><div class="card-head"><h3>💧 Humidity (%)</h3></div><canvas id="chartHum" height="160"></canvas></div>
+          <div class="card"><div class="card-head"><h3>🌱 Soil Moisture (%)</h3></div><canvas id="chartSoil" height="160"></canvas></div>
+          <div class="card"><div class="card-head"><h3>💡 Light (Lux)</h3></div><canvas id="chartLight" height="160"></canvas></div>
+        </div>
+      </section>
+
+      <!-- ============ DEVICE CONTROLS ============ -->
+      <section class="page" id="page-controls">
+        <div class="page-head">
+          <h1>🎛️ Device Controls</h1>
+          <p class="sub">Control greenhouse devices and automation</p>
+        </div>
+        <div class="grid grid-4" id="deviceCards"></div>
+
+        <div class="card">
+          <div class="card-head"><h3>Automation Rules</h3></div>
+          <div class="automation-list">
+            <div class="automation-row"><span>🌡️ Temperature &gt; 30°C</span><span class="arrow">→</span><span>Turn ON Exhaust Fan</span></div>
+            <div class="automation-row"><span>🌱 Soil Moisture &lt; 30%</span><span class="arrow">→</span><span>Turn ON Water Pump</span></div>
+            <div class="automation-row"><span>🔴 Unknown RFID detected</span><span class="arrow">→</span><span>Keep locked · Buzzer · Alert</span></div>
+            <div class="automation-row"><span>🟢 Authorized RFID detected</span><span class="arrow">→</span><span>Unlock · Auto-lock timer</span></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ ALERTS ============ -->
+      <section class="page" id="page-alerts">
+        <div class="page-head">
+          <h1>🚨 Security &amp; System Alerts</h1>
+          <p class="sub">All security, environmental and system notifications</p>
+          <button class="btn btn-outline" id="markAllReadBtn">Mark All as Read</button>
+        </div>
+        <div class="alerts-list" id="alertsList"></div>
+      </section>
+
+      <!-- ============ SETTINGS ============ -->
+      <section class="page" id="page-settings">
+        <div class="page-head">
+          <h1>⚙️ System Settings</h1>
+          <p class="sub">Security, environment thresholds and automation</p>
+        </div>
+
+        <div class="grid grid-2">
+          <div class="card">
+            <div class="card-head"><h3>Security</h3></div>
+            <label>Auto-lock duration (seconds)<input type="number" id="setAutoLock" value="5"></label>
+            <label>Maximum failed RFID attempts<input type="number" id="setMaxFail" value="3"></label>
+            <label>Buzzer duration (seconds)<input type="number" id="setBuzzer" value="3"></label>
+            <label class="switch-row">System Armed <input type="checkbox" id="setArmed" checked></label>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Environment Thresholds</h3></div>
+            <label>Temperature threshold (°C)<input type="number" id="setTempThresh" value="30"></label>
+            <label>Soil moisture threshold (%)<input type="number" id="setSoilThresh" value="30"></label>
+            <label>Humidity threshold (%)<input type="number" id="setHumThresh" value="80"></label>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>Automation</h3></div>
+            <label class="switch-row">Automatic fan <input type="checkbox" id="autoFan" checked></label>
+            <label class="switch-row">Automatic pump <input type="checkbox" id="autoPump" checked></label>
+            <label class="switch-row">Automatic light <input type="checkbox" id="autoLight" checked></label>
+            <label class="switch-row">Automatic door locking <input type="checkbox" id="autoDoor" checked></label>
+          </div>
+          <div class="card">
+            <div class="card-head"><h3>System</h3></div>
+            <label>Data refresh interval (seconds)<input type="number" id="setRefresh" value="4"></label>
+            <div class="kv-list">
+              <div><span>ESP32 IP</span><b>192.168.1.42</b></div>
+              <div><span>Last seen</span><b id="setLastSeen">just now</b></div>
+            </div>
+          </div>
+        </div>
+        <button class="btn btn-green" id="saveSettingsBtn">Save Settings</button>
+      </section>
+
+    </main>
+  </div>
+</div>
+
+<!-- ============ ADD RFID USER MODAL ============ -->
+<div class="modal-backdrop" id="userModalBackdrop">
+  <div class="modal">
+    <h3>Register RFID Card</h3>
+    <label>User Name<input type="text" id="newUserName" placeholder="e.g. Theekshana"></label>
+    <div class="scan-box" id="scanBox">
+      <div id="scanBoxState">Waiting for RFID card...</div>
+      <button class="btn btn-outline" id="scanCardBtn">Scan RFID Card</button>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="cancelUserBtn">Cancel</button>
+      <button class="btn btn-green" id="registerUserBtn" disabled>Register RFID Card</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============ CONFIRM DIALOG ============ -->
+<div class="modal-backdrop" id="confirmBackdrop">
+  <div class="modal">
+    <h3 id="confirmTitle">Are you sure?</h3>
+    <p id="confirmBody" class="sub"></p>
+    <div class="modal-actions">
+      <button class="btn btn-outline" id="confirmCancelBtn">Cancel</button>
+      <button class="btn btn-danger" id="confirmOkBtn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOASTS -->
+<div class="toast-stack" id="toastStack"></div>
+
+<script src="js/app.js"></script>
+</body>
+</html>
